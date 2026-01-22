@@ -1,0 +1,36 @@
+# Build directories
+build/
+bootloader/
+
+# IDE files
+.vscode/
+.claude/
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Dependencies
+dependencies.lock
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+dist/
+build/
+
+# ESP-IDF
+sdkconfig
+sdkconfig.old
+.tag
+*.pyc
+
+# Temporary files
+*.log
+*.tmp
