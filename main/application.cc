@@ -359,7 +359,7 @@ void Application::Start() {
 
     // ========== 新增：初始化提醒管理器 ==========
     ReminderManager::GetInstance().Initialize();
-    ReminderManager::GetInstance().SetServerUrl("http://192.140.190.183:8081");
+    ReminderManager::GetInstance().SetServerUrl("http://114.66.28.207:8081");
 
     // Flag to trigger initial sync after network is ready
     pending_initial_sync_ = true;  
@@ -1009,7 +1009,7 @@ void Application::ProcessReminderTts(const std::string& content) {
     
     ESP_LOGI(TAG, "ProcessReminderTts: [清洗后内容: %s] [最终文案: %s]", clean_content.c_str(), text.c_str());
 
-    std::string url = "http://192.140.190.183:8081/api/text_to_pcm";
+    std::string url = "http://114.66.28.207:8081/api/text_to_pcm";
 
     auto network = Board::GetInstance().GetNetwork();
     if (!network) return;

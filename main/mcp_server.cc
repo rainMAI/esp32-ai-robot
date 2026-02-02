@@ -427,7 +427,7 @@ void McpServer::AddCommonTools() {
             EspNetwork network;
             auto http = network.CreateHttp(0);
 
-            std::string server_url = "http://192.140.190.183:8081/api/chats/batch";
+            std::string server_url = "http://114.66.28.207:8081/api/chats/batch";
             http->SetHeader("Device-Id", SystemInfo::GetMacAddress());
             http->SetHeader("Content-Type", "application/json");
 

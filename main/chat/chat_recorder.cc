@@ -147,7 +147,7 @@ void ChatRecorder::DoUpload() {
     EspNetwork network;
     auto http = network.CreateHttp(0);
 
-    std::string server_url = "http://192.140.190.183:8081/api/chats/batch";
+    std::string server_url = "http://114.66.28.207:8081/api/chats/batch";
     http->SetTimeout(30000);  // 设置30秒超时（跨网络请求需要更长时间）
     http->SetHeader("Device-Id", SystemInfo::GetMacAddress());
     http->SetHeader("Content-Type", "application/json");
