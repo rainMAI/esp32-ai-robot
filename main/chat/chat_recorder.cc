@@ -95,8 +95,8 @@ bool ChatRecorder::ShouldUpload() const {
         return true;
     }
 
-    // 条件2：距离上次上传超过时间间隔（首次上传需要至少有一条对话）
-    if (last_upload_time_ > 0 && !buffer_.empty()) {
+    // 条件2：距离上次上传超过时间间隔
+    if (last_upload_time_ > 0) {
         int64_t current_time = std::chrono::duration_cast<std::chrono::milliseconds>(
             std::chrono::steady_clock::now().time_since_epoch()).count();
 
@@ -120,20 +120,15 @@ void ChatRecorder::PeriodicUploadCheck() {
         return;
     }
 
-    // 检查时间条件（首次上传需要在至少有一条对话后等待时间间隔）
-    int64_t current_time = std::chrono::duration_cast<std::chrono::milliseconds>(
-        std::chrono::steady_clock::now().time_since_epoch()).count();
-
+    // 检查时间条件
     if (last_upload_time_ > 0) {
+        int64_t current_time = std::chrono::duration_cast<std::chrono::milliseconds>(
+            std::chrono::steady_clock::now().time_since_epoch()).count();
+
         if (current_time - last_upload_time_ >= upload_interval_ms_) {
             ESP_LOGI(TAG, "Periodic upload triggered (time interval reached)");
             DoUpload();
         }
-    } else if (buffer_.size() > 0) {
-        // 首次上传：记录当前时间为基准时间，但不立即上传（等待达到阈值或时间间隔）
-        // 这样可以确保首次上传后，后续的定时检查能正常工作
-        ESP_LOGI(TAG, "First dialogue recorded, setting upload baseline time");
-        last_upload_time_ = current_time;
     }
 }
 

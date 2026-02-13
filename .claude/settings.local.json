@@ -1,0 +1,14 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python:*)",
+      "Bash(done:*)",
+      "Bash(clawdbot gateway start:*)",
+      "Bash(clawdbot config set:*)",
+      "Bash(cmd:*)",
+      "Bash(powershell:*)",
+      "Bash(HTTP_PROXY=\"http://127.0.0.1:7890\" HTTPS_PROXY=\"http://127.0.0.1:7890\" clawdbot gateway:*)",
+      "Bash(ssh:*)"
+    ]
+  }
+}

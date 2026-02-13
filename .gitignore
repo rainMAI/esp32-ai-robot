@@ -1,0 +1,23 @@
+# Build files
+build/
+build_*/
+*.pyc
+__py__/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# ESP-IDF
+sdkconfig
+dependencies.lock
+managed_components/
+
+# Temporary files
+*.log
+*.tmp
+*.bak
+eyes.rar

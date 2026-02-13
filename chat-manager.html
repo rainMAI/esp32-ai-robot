@@ -1,0 +1,856 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI对话管理 & 每日总结</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Microsoft YaHei", sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .header {
+            background: white;
+            border-radius: 12px;
+            padding: 24px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header h1 {
+            color: #2c3e50;
+            font-size: 28px;
+            margin-bottom: 8px;
+        }
+
+        .header p {
+            color: #7f8c8d;
+            font-size: 14px;
+        }
+
+        .tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .tab {
+            background: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 500;
+            color: #7f8c8d;
+            transition: all 0.3s;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .tab:hover {
+            background: #f8f9fa;
+        }
+
+        .tab.active {
+            background: #667eea;
+            color: white;
+        }
+
+        .tab-content {
+            display: none;
+            background: white;
+            border-radius: 12px;
+            padding: 24px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .controls {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+        .control-group {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        label {
+            font-weight: 500;
+            color: #2c3e50;
+        }
+
+        input[type="date"],
+        input[type="text"],
+        select {
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 14px;
+        }
+
+        button {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.3s;
+        }
+
+        .btn-primary {
+            background: #667eea;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #5568d3;
+        }
+
+        .btn-secondary {
+            background: #95a5a6;
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background: #7f8c8d;
+        }
+
+        .btn-success {
+            background: #27ae60;
+            color: white;
+        }
+
+        .btn-success:hover {
+            background: #229954;
+        }
+
+        .chat-list {
+            display: grid;
+            gap: 16px;
+            max-height: 600px;
+            overflow-y: auto;
+        }
+
+        .chat-item {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 16px;
+            border-left: 4px solid #667eea;
+        }
+
+        .chat-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 12px;
+        }
+
+        .chat-time {
+            font-size: 12px;
+            color: #95a5a6;
+        }
+
+        .chat-content {
+            display: grid;
+            gap: 12px;
+        }
+
+        .message {
+            padding: 12px;
+            border-radius: 8px;
+        }
+
+        .message.user {
+            background: #e3f2fd;
+            border-left: 3px solid #2196f3;
+        }
+
+        .message.ai {
+            background: #f3e5f5;
+            border-left: 3px solid #9c27b0;
+        }
+
+        .message-label {
+            font-weight: 600;
+            font-size: 12px;
+            margin-bottom: 4px;
+            color: #7f8c8d;
+        }
+
+        .message-text {
+            color: #2c3e50;
+            line-height: 1.6;
+        }
+
+        .report-list {
+            display: grid;
+            gap: 16px;
+        }
+
+        .report-item {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 16px;
+            border-left: 4px solid #27ae60;
+        }
+
+        .report-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+
+        .report-date {
+            font-weight: 600;
+            color: #2c3e50;
+        }
+
+        .report-stats {
+            font-size: 12px;
+            color: #7f8c8d;
+        }
+
+        .report-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #7f8c8d;
+        }
+
+        .spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 16px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #95a5a6;
+        }
+
+        .empty-state svg {
+            width: 80px;
+            height: 80px;
+            margin-bottom: 16px;
+            opacity: 0.3;
+        }
+
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+
+        .stat-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 8px;
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 32px;
+            font-weight: bold;
+            margin-bottom: 8px;
+        }
+
+        .stat-label {
+            font-size: 14px;
+            opacity: 0.9;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: white;
+            border-radius: 12px;
+            max-width: 900px;
+            width: 90%;
+            max-height: 80vh;
+            overflow: auto;
+            padding: 24px;
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 16px;
+            border-bottom: 2px solid #f0f0f0;
+        }
+
+        .modal-title {
+            font-size: 24px;
+            font-weight: 600;
+            color: #2c3e50;
+        }
+
+        .close-btn {
+            background: none;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            color: #95a5a6;
+            padding: 0;
+            width: 32px;
+            height: 32px;
+        }
+
+        .close-btn:hover {
+            color: #7f8c8d;
+        }
+    
+        .header-left {
+            flex: 1;
+        }
+
+        .header-right {
+            display: flex;
+            gap: 10px;
+        }
+
+        .back-btn, .logout-btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 14px;
+            transition: all 0.3s;
+        }
+
+        .back-btn {
+            background: #95a5a6;
+            color: white;
+        }
+
+        .back-btn:hover {
+            background: #7f8c8d;
+        }
+
+        .logout-btn {
+            background: #e74c3c;
+            color: white;
+        }
+
+        .logout-btn:hover {
+            background: #c0392b;
+        }
+</style>
+</head>
+<body>
+    <div class="container">
+        <!-- 页面标题 -->
+        <div class="header">
+            <div class="header-left">
+                <h1>🤖 AI对话管理 & 每日总结</h1>
+                <p>查看与AI的对话记录，管理和生成每日总结报告</p>
+            </div>
+            <div class="header-right">
+                <button class="back-btn" onclick="goToPortal()">← 返回门户</button>
+                <button class="logout-btn" onclick="handleLogout()">退出登录</button>
+            </div>
+        </div>
+
+        <!-- 标签页 -->
+        <div class="tabs">
+            <button class="tab active" onclick="switchTab('chats')">💬 对话记录</button>
+            <button class="tab" onclick="switchTab('reports')">📊 每日总结</button>
+        </div>
+
+        <!-- 对话记录标签页 -->
+        <div id="chats" class="tab-content active">
+            <div class="stats">
+                <div class="stat-card">
+                    <div class="stat-value" id="totalChats">0</div>
+                    <div class="stat-label">总对话数</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="todayChats">0</div>
+                    <div class="stat-label">今日对话</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="deviceCount">1</div>
+                    <div class="stat-label">设备数量</div>
+                </div>
+            </div>
+
+            <div class="controls">
+                <div class="control-group">
+                    <label>日期:</label>
+                    <input type="date" id="chatDate">
+                </div>
+                <div class="control-group">
+                    <label>设备:</label>
+                    <select id="deviceSelect">
+                        <option value="">全部设备</option>
+                    </select>
+                </div>
+                <button class="btn-primary" onclick="loadChats()">🔍 查询</button>
+                <button class="btn-secondary" onclick="resetChatFilters()">🔄 重置</button>
+            </div>
+
+            <div id="chatList" class="chat-list">
+                <div class="loading">
+                    <div class="spinner"></div>
+                    <p>加载中...</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- 每日总结标签页 -->
+        <div id="reports" class="tab-content">
+            <div class="controls">
+                <div class="control-group">
+                    <label>日期:</label>
+                    <input type="date" id="reportDate">
+                </div>
+                <div class="control-group">
+                    <label>设备:</label>
+                    <select id="reportDeviceSelect">
+                        <option value="">全部设备</option>
+                    </select>
+                </div>
+                <button class="btn-primary" onclick="loadReports()">🔍 查询</button>
+                <button class="btn-success" onclick="generateReport()">✨ 生成报告</button>
+                <button class="btn-secondary" onclick="resetReportFilters()">🔄 重置</button>
+            </div>
+
+            <div id="reportList" class="report-list">
+                <div class="loading">
+                    <div class="spinner"></div>
+                    <p>加载中...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 报告预览模态框 -->
+    <div id="reportModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title">📊 每日总结预览</h2>
+                <button class="close-btn" onclick="closeModal()">&times;</button>
+            </div>
+            <div id="reportContent"></div>
+        </div>
+    </div>
+
+    <script>
+        // 配置
+        const API_BASE = window.location.protocol + '//' + window.location.hostname + ':8081/api';
+        const DEVICE_MAC = '10:20:ba:02:c1:4c';
+
+        // 初始化
+        document.addEventListener('DOMContentLoaded', () => {
+            // 设置默认日期为今天
+            const today = new Date().toISOString().split('T')[0];
+            document.getElementById('chatDate').value = today;
+            document.getElementById('reportDate').value = today;
+
+            // 加载数据
+            loadDevices();
+            loadChats();
+            loadReports();
+            loadStats();
+        });
+
+        // 切换标签页
+        function switchTab(tabName) {
+            // 隐藏所有标签内容
+            document.querySelectorAll('.tab-content').forEach(tab => {
+                tab.classList.remove('active');
+            });
+
+            // 取消所有标签激活状态
+            document.querySelectorAll('.tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+
+            // 显示选中的标签
+            document.getElementById(tabName).classList.add('active');
+            event.target.classList.add('active');
+        }
+
+        // 加载设备列表
+        async function loadDevices() {
+            try {
+                const response = await fetch(`${API_BASE}/devices`);
+                const data = await response.json();
+
+                if (data.success && data.devices) {
+                    const selects = ['deviceSelect', 'reportDeviceSelect'];
+                    selects.forEach(selectId => {
+                        const select = document.getElementById(selectId);
+                        select.innerHTML = '<option value="">全部设备</option>';
+                        data.devices.forEach(device => {
+                            select.innerHTML += `<option value="${device.mac_address}">${device.device_name || device.mac_address}</option>`;
+                        });
+                    });
+
+                    // 默认选中当前设备
+                    if (data.devices.find(d => d.mac_address === DEVICE_MAC)) {
+                        document.getElementById('deviceSelect').value = DEVICE_MAC;
+                        document.getElementById('reportDeviceSelect').value = DEVICE_MAC;
+                    }
+                }
+            } catch (error) {
+                console.error('加载设备失败:', error);
+            }
+        }
+
+        // 加载统计数据
+        async function loadStats() {
+            try {
+                const date = document.getElementById('chatDate').value;
+                const response = await fetch(`${API_BASE}/chats/stats?date=${date}`);
+                const data = await response.json();
+
+                if (data.success) {
+                    document.getElementById('totalChats').textContent = data.total || 0;
+                    document.getElementById('todayChats').textContent = data.today || 0;
+                    document.getElementById('deviceCount').textContent = data.devices || 1;
+                }
+            } catch (error) {
+                console.error('加载统计失败:', error);
+            }
+        }
+
+        // 加载对话记录
+        async function loadChats() {
+            const chatList = document.getElementById('chatList');
+            const date = document.getElementById('chatDate').value;
+            const deviceMac = document.getElementById('deviceSelect').value || DEVICE_MAC;
+
+            chatList.innerHTML = '<div class="loading"><div class="spinner"></div><p>加载中...</p></div>';
+
+            try {
+                const url = `${API_BASE}/chats/${deviceMac}${date ? `?date=${date}` : ''}`;
+                const response = await fetch(url);
+                const data = await response.json();
+
+                if (data.success && data.chats && data.chats.length > 0) {
+                    chatList.innerHTML = '';
+                    data.chats.forEach(chat => {
+                        const chatItem = createChatItem(chat);
+                        chatList.appendChild(chatItem);
+                    });
+                } else {
+                    chatList.innerHTML = createEmptyState('💭', '暂无对话记录');
+                }
+            } catch (error) {
+                console.error('加载对话失败:', error);
+                chatList.innerHTML = createEmptyState('❌', '加载失败，请稍后重试');
+            }
+        }
+
+        // 创建对话项
+        function createChatItem(chat) {
+            const div = document.createElement('div');
+            div.className = 'chat-item';
+
+            const time = new Date(chat.server_timestamp).toLocaleString('zh-CN');
+
+            div.innerHTML = `
+                <div class="chat-header">
+                    <span class="chat-time">⏰ ${time}</span>
+                </div>
+                <div class="chat-content">
+                    <div class="message user">
+                        <div class="message-label">👤 用户</div>
+                        <div class="message-text">${escapeHtml(chat.user_text)}</div>
+                    </div>
+                    <div class="message ai">
+                        <div class="message-label">🤖 AI助手</div>
+                        <div class="message-text">${escapeHtml(chat.ai_text)}</div>
+                    </div>
+                </div>
+            `;
+
+            return div;
+        }
+
+        // 加载报告列表
+        async function loadReports() {
+            const reportList = document.getElementById('reportList');
+            const date = document.getElementById('reportDate').value;
+            const deviceMac = document.getElementById('reportDeviceSelect').value || DEVICE_MAC;
+
+            reportList.innerHTML = '<div class="loading"><div class="spinner"></div><p>加载中...</p></div>';
+
+            try {
+                const url = date
+                    ? `${API_BASE}/reports/${deviceMac}/${date}/json`
+                    : `${API_BASE}/reports/list?device_mac=${deviceMac}`;
+
+                const response = await fetch(url);
+                const data = await response.json();
+
+                reportList.innerHTML = '';
+
+                if (data.success || data.report_date) {
+                    const reports = Array.isArray(data) ? data : [data];
+                    reports.forEach(report => {
+                        const reportItem = createReportItem(report, deviceMac);
+                        reportList.appendChild(reportItem);
+                    });
+                } else {
+                    reportList.innerHTML = createEmptyState('📊', '暂无报告，点击"生成报告"创建新报告');
+                }
+            } catch (error) {
+                console.error('加载报告失败:', error);
+                reportList.innerHTML = createEmptyState('❌', '加载失败，请稍后重试');
+            }
+        }
+
+        // 创建报告项
+        function createReportItem(report, deviceMac) {
+            const div = document.createElement('div');
+            div.className = 'report-item';
+
+            const date = report.report_date || new Date().toISOString().split('T')[0];
+            const count = report.chat_count || 0;
+            const status = report.generation_status || 'success';
+
+            div.innerHTML = `
+                <div class="report-header">
+                    <div>
+                        <div class="report-date">📅 ${date}</div>
+                        <div class="report-stats">
+                            对话数: ${count} 条 | 状态: ${status === 'success' ? '✅ 成功' : '❌ 失败'}
+                        </div>
+                    </div>
+                    <div class="report-actions">
+                        <button class="btn-primary" onclick="viewReport('${deviceMac}', '${date}')">👁️ 查看</button>
+                        <button class="btn-success" onclick="downloadReport('${deviceMac}', '${date}')">📥 下载</button>
+                        <button class="btn-secondary" onclick="regenerateReport('${deviceMac}', '${date}')">🔄 重新生成</button>
+                    </div>
+                </div>
+            `;
+
+            return div;
+        }
+
+        // 查看报告
+        async function viewReport(deviceMac, date) {
+            const modal = document.getElementById('reportModal');
+            const content = document.getElementById('reportContent');
+
+            content.innerHTML = '<div class="loading"><div class="spinner"></div><p>加载中...</p></div>';
+            modal.classList.add('active');
+
+            try {
+                const response = await fetch(`${API_BASE}/reports/${deviceMac}/${date}`);
+                const html = await response.text();
+
+                if (html && !html.includes('"error":')) {
+                    content.innerHTML = html;
+                } else {
+                    content.innerHTML = createEmptyState('❌', '报告加载失败');
+                }
+            } catch (error) {
+                console.error('加载报告失败:', error);
+                content.innerHTML = createEmptyState('❌', '加载失败，请稍后重试');
+            }
+        }
+
+        // 下载报告
+        async function downloadReport(deviceMac, date) {
+            try {
+                const response = await fetch(`${API_BASE}/reports/${deviceMac}/${date}`);
+                const html = await response.text();
+
+                const blob = new Blob([html], { type: 'text/html' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `report_${deviceMac}_${date}.html`;
+                a.click();
+                URL.revokeObjectURL(url);
+            } catch (error) {
+                console.error('下载失败:', error);
+                alert('下载失败，请稍后重试');
+            }
+        }
+
+        // 生成报告
+        async function generateReport() {
+            const date = document.getElementById('reportDate').value;
+            const deviceMac = document.getElementById('reportDeviceSelect').value || DEVICE_MAC;
+
+            if (!date) {
+                alert('请选择日期');
+                return;
+            }
+
+            if (!confirm(`确定要生成 ${date} 的每日总结报告吗？`)) {
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_BASE}/reports/generate`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ device_mac: deviceMac, date: date })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    alert(`✅ 报告生成成功！\n对话数: ${data.chat_count}`);
+                    loadReports();
+                } else {
+                    alert(`❌ 报告生成失败: ${data.error || '未知错误'}`);
+                }
+            } catch (error) {
+                console.error('生成报告失败:', error);
+                alert('❌ 生成失败，请稍后重试');
+            }
+        }
+
+        // 重新生成报告
+        async function regenerateReport(deviceMac, date) {
+            if (!confirm(`确定要重新生成 ${date} 的报告吗？`)) {
+                return;
+            }
+
+            // 先删除旧报告（通过API）
+            // 然后生成新报告
+            await generateReport();
+        }
+
+        // 关闭模态框
+        function closeModal() {
+            document.getElementById('reportModal').classList.remove('active');
+        }
+
+        // 重置对话筛选
+        function resetChatFilters() {
+            document.getElementById('chatDate').value = new Date().toISOString().split('T')[0];
+            document.getElementById('deviceSelect').value = DEVICE_MAC;
+            loadChats();
+        }
+
+        // 重置报告筛选
+        function resetReportFilters() {
+            document.getElementById('reportDate').value = new Date().toISOString().split('T')[0];
+            document.getElementById('reportDeviceSelect').value = DEVICE_MAC;
+            loadReports();
+        }
+
+        // 创建空状态
+        function createEmptyState(icon, message) {
+            return `
+                <div class="empty-state">
+                    <div style="font-size: 48px; margin-bottom: 16px;">${icon}</div>
+                    <p>${message}</p>
+                </div>
+            `;
+        }
+
+        // HTML转义
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // 点击模态框背景关闭
+        document.getElementById('reportModal').addEventListener('click', (e) => {
+            if (e.target.id === 'reportModal') {
+                closeModal();
+            }
+        });
+    </script>
+
+    <script>
+        // 登录验证
+        (function() {
+            const token = localStorage.getItem('session_token');
+            if (!token) {
+                window.location.href = '/static/auth.html';
+            }
+        })();
+
+        // 返回门户
+        function goToPortal() {
+            window.location.href = '/static/portal.html';
+        }
+
+        // 退出登录
+        async function handleLogout() {
+            if (!confirm('确定要退出登录吗？')) return;
+            const token = localStorage.getItem('session_token');
+            try {
+                await fetch(`${API_BASE}/auth/logout`, {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+            } catch (e) {}
+            localStorage.removeItem('session_token');
+            localStorage.removeItem('username');
+            localStorage.removeItem('user_id');
+            window.location.href = '/static/auth.html';
+        }
+
+    </script>
+</body>
+</html>

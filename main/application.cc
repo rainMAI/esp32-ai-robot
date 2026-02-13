@@ -479,9 +479,6 @@ void Application::Start() {
         if (strcmp(type->valuestring, "tts") == 0) {
             auto state = cJSON_GetObjectItem(root, "state");
             if (strcmp(state->valuestring, "start") == 0) {
-                if (processing_reminder_tts_) {
-                    return;
-                }
                 Schedule([this]() {
                     aborted_ = false;
                     if (device_state_ == kDeviceStateIdle || device_state_ == kDeviceStateListening) {
@@ -614,7 +611,8 @@ void Application::OnClockTimer() {
     }
 
     // Sync reminders with server every 1 minute (60 seconds)
-    if (clock_ticks_ % 60 == 0) {
+    // Skip if currently processing reminder TTS to avoid interrupting reminder playback
+    if (clock_ticks_ % 60 == 0 && !processing_reminder_tts_) {
         ESP_LOGI(TAG, "Periodic reminder sync triggered");
         ReminderManager::GetInstance().SyncPull(ReminderManager::GetInstance().GetServerUrl());
     }
@@ -895,12 +893,7 @@ bool Application::CanEnterSleepMode() {
 void Application::SendMcpMessage(const std::string& payload) {
     Schedule([this, payload]() {
         if (protocol_) {
-            // 检查连接状态，避免在连接断开时发送失败
-            if (protocol_->IsAudioChannelOpened()) {
-                protocol_->SendMcpMessage(payload);
-            } else {
-                ESP_LOGW(TAG, "Cannot send MCP message: WebSocket disconnected");
-            }
+            protocol_->SendMcpMessage(payload);
         }
     });
 }
@@ -1111,15 +1104,10 @@ void Application::ProcessReminderTts(const std::string& content) {
     http->Close();
     ESP_LOGI(TAG, "Reminder audio upload finished, total %u bytes", total_bytes);
 
-    // [FIX] 关键步骤：发送"停止监听"指令，告知服务端音频流结束，触发立即响应
+    // [FIX] 关键步骤：发送“停止监听”指令，告知服务端音频流结束，触发立即响应
     if (protocol_) {
-        // 先检查连接状态，避免在连接断开时发送失败
-        if (protocol_->IsAudioChannelOpened()) {
-            protocol_->SendStopListening();
-            ESP_LOGI(TAG, "Sent StopListening to server to trigger immediate response");
-        } else {
-            ESP_LOGW(TAG, "Cannot send StopListening: WebSocket disconnected");
-        }
+        protocol_->SendStopListening();
+        ESP_LOGI(TAG, "Sent StopListening to server to trigger immediate response");
     }
 
     // [Step 3] 恢复麦克风采集，让 AI 能听到用户接下来的回复

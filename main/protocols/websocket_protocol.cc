@@ -165,7 +165,7 @@ bool WebsocketProtocol::OpenAudioChannel() {
     });
 
     websocket_->OnDisconnected([this]() {
-        ESP_LOGW(TAG, "Websocket disconnected");
+        ESP_LOGI(TAG, "Websocket disconnected");
         if (on_audio_channel_closed_ != nullptr) {
             on_audio_channel_closed_();
         }

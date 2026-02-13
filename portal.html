@@ -1,0 +1,473 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI助手管理平台</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Microsoft YaHei", sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .header {
+            background: white;
+            border-radius: 20px;
+            padding: 30px;
+            margin-bottom: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .logo { display: flex; align-items: center; gap: 15px; }
+        .logo-icon { font-size: 48px; }
+        .logo-text h1 { color: #2c3e50; font-size: 28px; margin-bottom: 5px; }
+        .logo-text p { color: #7f8c8d; font-size: 14px; }
+        .user-info { display: flex; align-items: center; gap: 20px; }
+        .welcome-text { color: #2c3e50; font-weight: 500; }
+        .logout-btn {
+            padding: 10px 20px;
+            background: #e74c3c;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+        }
+        .logout-btn:hover { background: #c0392b; }
+        .container { max-width: 1200px; margin: 0 auto; }
+        .modules {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 30px;
+        }
+        .module-card {
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            transition: all 0.3s;
+            cursor: pointer;
+            text-align: center;
+        }
+        .module-card:hover {
+            transform: translateY(-10px);
+            box-shadow: 0 20px 40px rgba(0,0,0,0.3);
+        }
+        .module-icon { font-size: 64px; margin-bottom: 20px; }
+        .module-title {
+            font-size: 24px;
+            font-weight: 600;
+            color: #2c3e50;
+            margin-bottom: 10px;
+        }
+        .module-description {
+            color: #7f8c8d;
+            font-size: 14px;
+            line-height: 1.6;
+            margin-bottom: 20px;
+        }
+        .module-stats {
+            display: flex;
+            justify-content: center;
+            gap: 30px;
+            padding: 20px 0;
+            border-top: 2px solid #f0f0f0;
+        }
+        .stat { text-align: center; }
+        .stat-value {
+            font-size: 28px;
+            font-weight: bold;
+            color: #667eea;
+        }
+        .stat-label {
+            font-size: 12px;
+            color: #95a5a6;
+            margin-top: 5px;
+        }
+        .device-info {
+            background: #f8f9fa;
+            border-radius: 12px;
+            padding: 15px;
+            margin-top: 20px;
+        }
+        .device-info-title {
+            font-weight: 600;
+            color: #2c3e50;
+            margin-bottom: 10px;
+            font-size: 14px;
+        }
+        .device-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            padding: 12px;
+            background: white;
+            border-radius: 8px;
+            margin-bottom: 8px;
+        }
+        .device-left {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .device-icon { font-size: 24px; }
+        .device-name {
+            font-weight: 600;
+            color: #2c3e50;
+            font-size: 14px;
+        }
+        .device-mac { font-size: 12px; color: #95a5a6; }
+        .device-actions {
+            display: flex;
+            gap: 8px;
+        }
+        .device-btn {
+            padding: 6px 12px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+        .unbind-btn {
+            background: #e74c3c;
+            color: white;
+        }
+        .unbind-btn:hover {
+            background: #c0392b;
+        }
+        .primary-badge {
+            background: #667eea;
+            color: white;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: 600;
+        }
+        .add-device-btn {
+            padding: 8px 16px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 14px;
+            transition: all 0.3s;
+        }
+        .add-device-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="logo">
+                <div class="logo-icon">🤖</div>
+                <div class="logo-text">
+                    <h1>AI助手管理平台</h1>
+                    <p>统一管理您的AI助手设备</p>
+                </div>
+            </div>
+            <div class="user-info">
+                <span class="welcome-text" id="welcomeText">欢迎，加载中...</span>
+                <button class="logout-btn" onclick="handleLogout()">退出登录</button>
+            </div>
+        </div>
+        <div class="modules">
+            <div class="module-card" onclick="goToReminder()">
+                <div class="module-icon">⏰</div>
+                <div class="module-title">提醒管理</div>
+                <div class="module-description">
+                    管理您的智能提醒任务，支持一次性、每日、每周等多种提醒类型
+                </div>
+                <div class="module-stats">
+                    <div class="stat">
+                        <div class="stat-value" id="reminderCount">-</div>
+                        <div class="stat-label">活跃提醒</div>
+                    </div>
+                    <div class="stat">
+                        <div class="stat-value" id="completedToday">-</div>
+                        <div class="stat-label">今日完成</div>
+                    </div>
+                </div>
+            </div>
+            <div class="module-card" onclick="goToChatManager()">
+                <div class="module-icon">💬</div>
+                <div class="module-title">AI对话管理</div>
+                <div class="module-description">
+                    查看与AI的对话记录，生成和管理每日思维分析报告
+                </div>
+                <div class="module-stats">
+                    <div class="stat">
+                        <div class="stat-value" id="chatCount">-</div>
+                        <div class="stat-label">对话记录</div>
+                    </div>
+                    <div class="stat">
+                        <div class="stat-value" id="reportCount">-</div>
+                        <div class="stat-label">AI报告</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="module-card" style="margin-top: 30px; cursor: default; text-align: left;">
+            <div class="module-icon" style="text-align: center;">📱</div>
+            <div class="module-title" style="text-align: center;">我的设备</div>
+            <div class="device-info">
+                <div class="device-info-title" style="display: flex; justify-content: space-between; align-items: center;">
+                    已连接的AI设备
+                    <button class="add-device-btn" onclick="showAddDeviceModal()">+ 添加设备</button>
+                </div>
+                <div id="deviceList">
+                    <div style="text-align: center; color: #95a5a6; padding: 20px;">加载中...</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 添加设备模态框 -->
+    <div id="deviceModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; align-items: center; justify-content: center;">
+        <div style="background: white; border-radius: 20px; padding: 30px; max-width: 400px; width: 90%; box-shadow: 0 20px 60px rgba(0,0,0,0.3);">
+            <h2 style="margin: 0 0 20px 0; color: #2c3e50; font-size: 24px;">添加设备</h2>
+            <div style="margin-bottom: 15px;">
+                <label style="display: block; margin-bottom: 8px; font-weight: 600; color: #2c3e50;">设备名称</label>
+                <input type="text" id="deviceName" placeholder="例如：客厅AI助手" style="width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 8px; font-size: 14px; box-sizing: border-box;">
+            </div>
+            <div style="margin-bottom: 20px;">
+                <label style="display: block; margin-bottom: 8px; font-weight: 600; color: #2c3e50;">设备MAC地址</label>
+                <input type="text" id="deviceMac" placeholder="10:20:ba:02:c1:4c" style="width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 8px; font-size: 14px; text-transform: uppercase; box-sizing: border-box;">
+                <small style="color: #7f8c8d; font-size: 12px;">在设备设置中可以找到MAC地址</small>
+            </div>
+            <div style="display: flex; gap: 10px;">
+                <button onclick="hideAddDeviceModal()" style="flex: 1; padding: 12px; background: #95a5a6; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 600;">取消</button>
+                <button onclick="addDevice()" style="flex: 1; padding: 12px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 600;">添加</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = window.location.protocol + '//' + window.location.hostname + ':8081/api';
+        let currentUser = null;
+        let userDevices = [];
+
+        window.addEventListener('load', async () => {
+            const token = localStorage.getItem('session_token');
+            if (!token) { window.location.href = '/static/auth.html'; return; }
+            try {
+                const res = await fetch(`${API_BASE}/auth/user`, { headers: { 'Authorization': `Bearer ${token}` } });
+                const data = await res.json();
+                if (data.success) {
+                    currentUser = data.user;
+                    document.getElementById('welcomeText').textContent = '欢迎，' + (currentUser.full_name || currentUser.username);
+                    await loadDevices();  // 先加载设备列表
+                    await loadStats();     // 再加载统计数据（此时userDevices已填充)
+                } else {
+                    window.location.href = '/static/auth.html';
+                }
+            } catch (e) {
+                console.error(e);
+                window.location.href = '/static/auth.html';
+            }
+        });
+
+        async function loadStats() {
+            const token = localStorage.getItem('session_token');
+            try {
+                const res = await fetch(`${API_BASE}/reminders/stats`, { headers: { 'Authorization': `Bearer ${token}` } });
+                const data = await res.json();
+                if (data.success) {
+                    document.getElementById('reminderCount').textContent = data.active || 0;
+                    document.getElementById('completedToday').textContent = data.completed_today || 0;
+                }
+            } catch (e) {}
+            try {
+                const res = await fetch(`${API_BASE}/chats/stats`, { headers: { 'Authorization': `Bearer ${token}` } });
+                const data = await res.json();
+                if (data.success) document.getElementById('chatCount').textContent = data.total || 0;
+            } catch (e) {}
+
+            // 使用第一个设备查询报告数量
+            if (userDevices.length > 0) {
+                try {
+                    const res = await fetch(`${API_BASE}/reports/list?device_mac=${userDevices[0].mac_address}`, { headers: { 'Authorization': `Bearer ${token}` } });
+                    const data = await res.json();
+                    if (data.success) document.getElementById('reportCount').textContent = data.count || 0;
+                } catch (e) {}
+            }
+        }
+
+        // 从API加载设备列表
+        async function loadDevices() {
+            const token = localStorage.getItem('session_token');
+            try {
+                const res = await fetch(`${API_BASE}/user/devices`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const data = await res.json();
+
+                if (data.success) {
+                    userDevices = data.devices || [];
+                    displayDevices();
+                } else {
+                    console.error('Failed to load devices:', data.error);
+                }
+            } catch (e) {
+                console.error('Error loading devices:', e);
+            }
+        }
+
+        function displayDevices() {
+            const list = document.getElementById('deviceList');
+            if (userDevices.length === 0) {
+                list.innerHTML = '<div style="text-align: center; color: #95a5a6; padding: 20px;">暂无设备，点击上方按钮添加</div>';
+                return;
+            }
+
+            list.innerHTML = userDevices.map(d => `
+                <div class="device-item">
+                    <div class="device-left">
+                        <div class="device-icon">🤖</div>
+                        <div>
+                            <div class="device-name">
+                                ${d.device_name}
+                                ${d.is_primary ? '<span class="primary-badge">主设备</span>' : ''}
+                            </div>
+                            <div class="device-mac">${d.mac_address}</div>
+                        </div>
+                    </div>
+                    <div class="device-actions">
+                        ${d.is_owned ? `<button class="device-btn unbind-btn" onclick="unbindDevice(${d.id}, '${d.device_name}')">删除</button>` : ''}
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // 显示添加设备模态框
+        function showAddDeviceModal() {
+            document.getElementById('deviceModal').style.display = 'flex';
+        }
+
+        // 隐藏添加设备模态框
+        function hideAddDeviceModal() {
+            document.getElementById('deviceModal').style.display = 'none';
+            document.getElementById('deviceName').value = '';
+            document.getElementById('deviceMac').value = '';
+        }
+
+        // 添加设备
+        async function addDevice() {
+            const name = document.getElementById('deviceName').value.trim();
+            const mac = document.getElementById('deviceMac').value.trim();
+
+            if (!name || !mac) {
+                alert('请填写完整的设备信息');
+                return;
+            }
+
+            // 验证MAC地址格式
+            const macPattern = /^([0-9A-Fa-f]{2}[:-]){5}([0-9A-Fa-f]{2})$/;
+            if (!macPattern.test(mac)) {
+                alert('MAC地址格式不正确，应为: XX:XX:XX:XX:XX:XX');
+                return;
+            }
+
+            const token = localStorage.getItem('session_token');
+            try {
+                const res = await fetch(`${API_BASE}/user/devices/add`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({
+                        device_name: name,
+                        mac_address: mac
+                    })
+                });
+                const data = await res.json();
+
+                if (data.success) {
+                    alert(data.message || '设备添加成功！');
+                    // 只有在真正添加成功时才关闭模态框和重新加载
+                    if (data.message === '设备添加成功') {
+                        hideAddDeviceModal();
+                        await loadDevices();  // 重新加载设备列表
+                        await loadStats();     // 重新加载统计数据
+                    }
+                } else {
+                    alert('添加失败: ' + (data.error || '未知错误'));
+                }
+            } catch (e) {
+                alert('网络错误，请稍后重试');
+            }
+        }
+
+        // 解绑设备（实际上是删除设备）
+        async function unbindDevice(deviceId, deviceName) {
+            if (!confirm(`确定要删除设备 "${deviceName}" 吗？\n\n删除后，该设备及其所有提醒记录将被永久删除，无法恢复！`)) {
+                return;
+            }
+
+            const token = localStorage.getItem('session_token');
+            try {
+                const res = await fetch(`${API_BASE}/user/devices/unbind`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({
+                        device_id: deviceId
+                    })
+                });
+                const data = await res.json();
+
+                if (data.success) {
+                    alert(data.message || '设备已删除');
+                    await loadDevices();  // 重新加载设备列表
+                    await loadStats();     // 重新加载统计数据
+                } else {
+                    alert('删除失败: ' + (data.error || '未知错误'));
+                }
+            } catch (e) {
+                alert('网络错误，请稍后重试');
+            }
+        }
+
+        function goToReminder() { window.location.href = '/web-reminder/'; }
+        function goToChatManager() { window.location.href = '/static/chat-manager.html'; }
+
+        async function handleLogout() {
+            if (!confirm('确定要退出登录吗？')) return;
+            const token = localStorage.getItem('session_token');
+            try {
+                await fetch(`${API_BASE}/auth/logout`, { method: 'POST', headers: { 'Authorization': `Bearer ${token}` } });
+            } catch (e) {}
+            localStorage.removeItem('session_token');
+            localStorage.removeItem('username');
+            localStorage.removeItem('user_id');
+            window.location.href = '/static/auth.html';
+        }
+
+        // 点击模态框背景关闭
+        document.addEventListener('DOMContentLoaded', () => {
+            const modal = document.getElementById('deviceModal');
+            if (modal) {
+                modal.addEventListener('click', (e) => {
+                    if (e.target === modal) {
+                        hideAddDeviceModal();
+                    }
+                });
+            }
+        });
+    </script>
+</body>
+</html>
