@@ -19,10 +19,13 @@ ChatRecorder& ChatRecorder::GetInstance() {
 ChatRecorder::ChatRecorder()
     : protocol_(nullptr)
     , batch_size_threshold_(DEFAULT_BATCH_SIZE)
-    , last_upload_time_(0)
+    , last_upload_time_(std::chrono::duration_cast<std::chrono::milliseconds>(
+            std::chrono::steady_clock::now().time_since_epoch()).count() - DEFAULT_UPLOAD_INTERVAL_MS)
     , upload_interval_ms_(DEFAULT_UPLOAD_INTERVAL_MS) {
-    ESP_LOGI(TAG, "ChatRecorder initialized (batch_size=%d, interval=%lld ms)", (int)batch_size_threshold_,
-             (long long)upload_interval_ms_);
+    ESP_LOGI(TAG, "ChatRecorder initialized (batch_size=%d, interval=%lld ms, last_upload=%lld)",
+             (int)batch_size_threshold_,
+             (long long)upload_interval_ms_,
+             (long long)last_upload_time_);
 }
 
 void ChatRecorder::SetProtocol(Protocol* protocol) {
