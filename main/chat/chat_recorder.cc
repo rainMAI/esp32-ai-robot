@@ -119,19 +119,28 @@ void ChatRecorder::UploadBatch() {
 void ChatRecorder::PeriodicUploadCheck() {
     std::lock_guard<std::mutex> lock(mutex_);
 
+    int64_t current_time = std::chrono::duration_cast<std::chrono::milliseconds>(
+        std::chrono::steady_clock::now().time_since_epoch()).count();
+
+    ESP_LOGI(TAG, "[PeriodicUploadCheck] called: buffer_size=%d, last_upload=%lld, interval=%lld, elapsed=%lld",
+             (int)buffer_.size(), (long long)last_upload_time_, (long long)upload_interval_ms_,
+             (long long)(current_time - last_upload_time_));
+
     if (buffer_.empty()) {
+        ESP_LOGI(TAG, "[PeriodicUploadCheck] buffer empty, skipping");
         return;
     }
 
     // 检查时间条件
     if (last_upload_time_ > 0) {
-        int64_t current_time = std::chrono::duration_cast<std::chrono::milliseconds>(
-            std::chrono::steady_clock::now().time_since_epoch()).count();
-
         if (current_time - last_upload_time_ >= upload_interval_ms_) {
             ESP_LOGI(TAG, "Periodic upload triggered (time interval reached)");
             DoUpload();
+        } else {
+            ESP_LOGI(TAG, "[PeriodicUploadCheck] time not reached yet");
         }
+    } else {
+        ESP_LOGI(TAG, "[PeriodicUploadCheck] last_upload_time_ <= 0, skipping");
     }
 }
 
