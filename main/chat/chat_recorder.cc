@@ -3,6 +3,7 @@
 #include <chrono>
 #include "esp_system.h"
 #include "esp_network.h"
+#include "esp_timer.h"
 #include "system_info.h"
 
 #define TAG "ChatRecorder"
@@ -19,9 +20,9 @@ ChatRecorder& ChatRecorder::GetInstance() {
 ChatRecorder::ChatRecorder()
     : protocol_(nullptr)
     , batch_size_threshold_(DEFAULT_BATCH_SIZE)
-    , last_upload_time_(std::chrono::duration_cast<std::chrono::milliseconds>(
-            std::chrono::steady_clock::now().time_since_epoch()).count() - DEFAULT_UPLOAD_INTERVAL_MS)
     , upload_interval_ms_(DEFAULT_UPLOAD_INTERVAL_MS) {
+    // 使用 esp_timer 获取当前毫秒数，减去间隔时间，确保第一次检查就能触发
+    last_upload_time_ = esp_timer_get_time() / 1000 - DEFAULT_UPLOAD_INTERVAL_MS;
     ESP_LOGI(TAG, "ChatRecorder initialized (batch_size=%d, interval=%lld ms, last_upload=%lld)",
              (int)batch_size_threshold_,
              (long long)upload_interval_ms_,
@@ -100,8 +101,7 @@ bool ChatRecorder::ShouldUpload() const {
 
     // 条件2：距离上次上传超过时间间隔
     if (last_upload_time_ > 0) {
-        int64_t current_time = std::chrono::duration_cast<std::chrono::milliseconds>(
-            std::chrono::steady_clock::now().time_since_epoch()).count();
+        int64_t current_time = esp_timer_get_time() / 1000;
 
         if (current_time - last_upload_time_ >= upload_interval_ms_) {
             return true;
@@ -119,8 +119,7 @@ void ChatRecorder::UploadBatch() {
 void ChatRecorder::PeriodicUploadCheck() {
     std::lock_guard<std::mutex> lock(mutex_);
 
-    int64_t current_time = std::chrono::duration_cast<std::chrono::milliseconds>(
-        std::chrono::steady_clock::now().time_since_epoch()).count();
+    int64_t current_time = esp_timer_get_time() / 1000;
 
     ESP_LOGI(TAG, "[PeriodicUploadCheck] called: buffer_size=%d, last_upload=%lld, interval=%lld, elapsed=%lld",
              (int)buffer_.size(), (long long)last_upload_time_, (long long)upload_interval_ms_,
@@ -131,16 +130,13 @@ void ChatRecorder::PeriodicUploadCheck() {
         return;
     }
 
-    // 检查时间条件
-    if (last_upload_time_ > 0) {
-        if (current_time - last_upload_time_ >= upload_interval_ms_) {
-            ESP_LOGI(TAG, "Periodic upload triggered (time interval reached)");
-            DoUpload();
-        } else {
-            ESP_LOGI(TAG, "[PeriodicUploadCheck] time not reached yet");
-        }
+    // 检查时间条件（last_upload_time_ 可以是负数，表示从未上传过）
+    if (current_time - last_upload_time_ >= upload_interval_ms_) {
+        ESP_LOGI(TAG, "Periodic upload triggered (time interval reached)");
+        DoUpload();
     } else {
-        ESP_LOGI(TAG, "[PeriodicUploadCheck] last_upload_time_ <= 0, skipping");
+        ESP_LOGI(TAG, "[PeriodicUploadCheck] time not reached yet: elapsed=%lld, interval=%lld",
+                 (long long)(current_time - last_upload_time_), (long long)upload_interval_ms_);
     }
 }
 
