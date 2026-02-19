@@ -24,6 +24,11 @@ AudioService::AudioService() {
 }
 
 AudioService::~AudioService() {
+    if (audio_power_timer_ != nullptr) {
+        esp_timer_stop(audio_power_timer_);
+        esp_timer_delete(audio_power_timer_);
+        audio_power_timer_ = nullptr;
+    }
     if (event_group_ != nullptr) {
         vEventGroupDelete(event_group_);
     }

@@ -402,7 +402,7 @@ void Application::Start() {
     // OTA 功能已禁用 - 使用单 app 分区，不支持 OTA 更新
     // Check for new firmware version or get the MQTT broker address
     Ota ota;
-    // CheckNewVersion(ota);  // 已禁用
+    CheckNewVersion(ota);  // 未禁用
 
     // Initialize the protocol
     display->SetStatus(Lang::Strings::LOADING_PROTOCOL);
@@ -410,10 +410,21 @@ void Application::Start() {
     // Add MCP common tools before initializing the protocol
     McpServer::GetInstance().AddCommonTools();
 
-    // OTA 检查已禁用，默认使用 WebSocket 协议
+    // 协议选择由 OTA 配置决定，以下硬编码已禁用
     // 如果需要使用 MQTT，取消注释下面一行：
-    // protocol_ = std::make_unique<MqttProtocol>();
-    protocol_ = std::make_unique<WebsocketProtocol>();
+    //protocol_ = std::make_unique<MqttProtocol>();
+    //protocol_ = std::make_unique<WebsocketProtocol>();
+
+
+    if (ota.HasMqttConfig()) {
+         protocol_ = std::make_unique<MqttProtocol>();
+    } else if (ota.HasWebsocketConfig()) {
+        protocol_ = std::make_unique<WebsocketProtocol>();
+    } else {
+        ESP_LOGW(TAG, "No protocol specified in the OTA config, using MQTT");
+        protocol_ = std::make_unique<MqttProtocol>();
+    }
+
 
      // ========== 新增：初始化对话记录器 ==========
     ChatRecorder::GetInstance().SetProtocol(protocol_.get());
@@ -430,15 +441,7 @@ void Application::Start() {
     }, "chat_upload", 4096, this, 2, &chat_upload_task_handle_);
     ESP_LOGI(TAG, "Chat upload task created");
 
-    // 原逻辑（已禁用）：
-    // if (ota.HasMqttConfig()) {
-    //     protocol_ = std::make_unique<MqttProtocol>();
-    // } else if (ota.HasWebsocketConfig()) {
-    //     protocol_ = std::make_unique<WebsocketProtocol>();
-    // } else {
-    //     ESP_LOGW(TAG, "No protocol specified in the OTA config, using MQTT");
-    //     protocol_ = std::make_unique<MqttProtocol>();
-    // }
+    
 
     protocol_->OnNetworkError([this](const std::string& message) {
         last_error_message_ = message;
@@ -476,8 +479,16 @@ void Application::Start() {
     protocol_->OnIncomingJson([this, display](const cJSON* root) {
         // Parse JSON data
         auto type = cJSON_GetObjectItem(root, "type");
+        if (type == nullptr || !cJSON_IsString(type)) {
+            ESP_LOGW(TAG, "Invalid JSON: missing or invalid 'type' field");
+            return;
+        }
         if (strcmp(type->valuestring, "tts") == 0) {
             auto state = cJSON_GetObjectItem(root, "state");
+            if (state == nullptr || !cJSON_IsString(state)) {
+                ESP_LOGW(TAG, "Invalid JSON: missing or invalid 'state' field");
+                return;
+            }
             if (strcmp(state->valuestring, "start") == 0) {
                 Schedule([this]() {
                     aborted_ = false;

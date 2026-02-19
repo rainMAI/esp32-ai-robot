@@ -311,7 +311,8 @@ void McpServer::AddCommonTools() {
             return ReminderManager::GetInstance().RemoveReminder(id);
         });
 
-    // 眼睛主题切换工具（已禁用动画模式，只保留基础主题）
+    // 眼睛主题切换工具（已禁用）
+    /*
     AddTool("self.eye.set_theme",
         "Change the basic eye theme style (static rendering).\n"
         "Available themes:\n"
@@ -347,8 +348,10 @@ void McpServer::AddCommonTools() {
             return std::string("{\"success\": true, \"message\": \"Eye theme changed to ") + theme +
                    std::string("\", \"theme\": \"") + theme + std::string("\"}");
         });
+    */
 
-    // 动画表情切换工具
+    // 动画表情切换工具（已禁用）
+    /*
     AddTool("self.eye.set_expression",
         "Switch the eye animation expression. Use this tool to change between different animated eye expressions.\n"
         "\n"
@@ -416,6 +419,7 @@ void McpServer::AddCommonTools() {
                        std::string(". Available expressions: eye (default), grok, next\"}");
             }
         });
+    */
 
 
     // Restore the original tools list to the end of the tools list
@@ -669,6 +673,14 @@ void McpServer::DoToolCall(int id, const std::string& tool_name, const cJSON* to
     cfg.stack_size = stack_size;
     cfg.prio = 1;
     esp_pthread_set_cfg(&cfg);
+
+    // Use a mutex to ensure only one tool call thread runs at a time
+    std::lock_guard<std::mutex> lock(thread_mutex_);
+
+    // Wait for previous thread to finish if still running
+    if (tool_call_thread_.joinable()) {
+        tool_call_thread_.join();
+    }
 
     // Use a thread to call the tool to avoid blocking the main thread
     tool_call_thread_ = std::thread([this, id, tool_iter, arguments = std::move(arguments)]() {

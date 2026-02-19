@@ -287,6 +287,7 @@ private:
 
     std::vector<McpTool*> tools_;
     std::thread tool_call_thread_;
+    std::mutex thread_mutex_;  // Protect thread creation
 };
 
 #endif // MCP_SERVER_H
