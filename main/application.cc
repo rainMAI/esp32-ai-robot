@@ -995,7 +995,7 @@ void Application::ProcessReminderTts(const std::string& content) {
         }
     }
 
-    const std::vector<std::string> action_prefixes = {"去", "到", "该", "做", "准备去"};
+    const std::vector<std::string> action_prefixes = { "到", "该", "准备去"};
     simplified = true;
     while (simplified) {
         simplified = false;

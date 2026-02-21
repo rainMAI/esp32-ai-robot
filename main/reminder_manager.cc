@@ -138,6 +138,15 @@ Reminder Reminder::from_json(const cJSON* json) {
         reminder.timestamp = (long long)timestamp->valuedouble;
         ESP_LOGI(TAG, "[SYNC] Using server timestamp for '%s': %" PRId64,
                  reminder.content.c_str(), (int64_t)reminder.timestamp);
+
+        // Check if server timestamp is already expired (in the past)
+        // If so, recalculate from scheduled_time to get next occurrence
+        time_t now = time(nullptr);
+        if (reminder.timestamp <= now && has_scheduled_time && !reminder.scheduled_time.empty()) {
+            ESP_LOGI(TAG, "[SYNC] Server timestamp expired, recalculating from scheduled_time '%s'",
+                     reminder.scheduled_time.c_str());
+            reminder.timestamp = calculate_timestamp_from_hhmm(reminder.scheduled_time);
+        }
     } else if (has_scheduled_time && !reminder.scheduled_time.empty()) {
         // No timestamp from server - calculate from scheduled_time
         reminder.timestamp = calculate_timestamp_from_hhmm(reminder.scheduled_time);
