@@ -1023,109 +1023,24 @@ void Application::ProcessReminderTts(const std::string& content) {
     }
 
     std::string text;
-    // [修复：阻断递归] 明确这是一条“通知音频”，而非“用户口令”。加上括号和状态标识，引导服务器AI识别为状态而非命令。
-    //text = "提醒我一下：现在该去 " + clean_content + " 了，并且告诉我"+ clean_content + " 的好处。";
-    text = "【系统提醒】请对用户说:现在该去" + clean_content + "了。";
-        
-    ESP_LOGI(TAG, "ProcessReminderTts: [清洗后内容: %s] [最终文案: %s]", clean_content.c_str(), text.c_str());
+    // [修复：阻断递归] 明确这是一条”通知音频”，而非”用户口令”。加上括号和状态标识，引导服务器AI识别为状态而非命令。
+    //text = “提醒我一下：现在该去 “ + clean_content + “ 了，并且告诉我”+ clean_content + “ 的好处。”;
+    text = “现在该去” + clean_content + “了。”;
 
-    std::string url = "http://120.25.213.109:8081/api/text_to_pcm";
+    ESP_LOGI(TAG, “ProcessReminderTts: [清洗后内容: %s] [发送给服务器: %s]”, clean_content.c_str(), text.c_str());
 
-    auto network = Board::GetInstance().GetNetwork();
-    if (!network) return;
-
-    auto http = network->CreateHttp(1);
-    if (!http) return;
-
-    cJSON* root = cJSON_CreateObject();
-    cJSON_AddStringToObject(root, "text", text.c_str());
-    cJSON_AddStringToObject(root, "voice", "zh-CN-XiaoxiaoNeural"); // 使用用户之前提到的音色或默认
-    char* json_str = cJSON_PrintUnformatted(root);
-
-    http->SetHeader("Content-Type", "application/json");
-    http->SetContent(json_str);
-
-    if (!http->Open("POST", url.c_str())) {
-        cJSON_free(json_str);
-        cJSON_Delete(root);
-        return;
+    // [新流程] 发送提醒给服务器，让服务器处理 AI + TTS
+    // 不再调用外部 TTS 服务 (120.25.213.109)
+    auto* ws_protocol = dynamic_cast<WebsocketProtocol*>(protocol_.get());
+    if (ws_protocol) {
+        ws_protocol->SendReminderToServer(text);
+    } else {
+        ESP_LOGE(TAG, “WebSocket protocol not available, cannot send reminder to server”);
     }
 
-    cJSON_free(json_str);
-    cJSON_Delete(root);
-
-    auto& audio_service = Application::GetInstance().GetAudioService();
-
-    // [Step 1] 挂起麦克风采集，防止环境音混入提醒语音回传
-    bool was_processor_running = audio_service.IsAudioProcessorRunning();
-    if (was_processor_running) {
-        audio_service.EnableVoiceProcessing(false);
-    }
-
-    const size_t FRAME_SIZE = 960; // 60ms @ 16kHz
-    const size_t FRAME_BYTES = FRAME_SIZE * 2;
-    auto buffer = std::unique_ptr<uint8_t[]>(new uint8_t[FRAME_BYTES]);
-
-    ESP_LOGI(TAG, "Streaming PCM data to AudioService for upload...");
-    size_t total_bytes = 0;
-    uint32_t timestamp = 0;
-    
-    // [FIX] 匀速上传控制：记录开始时间，确保以 1.0x 速率回传，防止服务端识别异常
-    uint32_t start_time_ms = esp_timer_get_time() / 1000;
-    uint32_t total_sent_ms = 0;
-
-    // 字节对齐缓冲区，确保每次 PushTaskToEncodeQueue 都是完整的 60ms 帧 (1920 字节)
-    std::vector<uint8_t> pcm_buffer;
-    pcm_buffer.reserve(FRAME_BYTES);
-
-    while (true) {
-        int bytes_read = http->Read((char*)buffer.get(), FRAME_BYTES);
-        if (bytes_read < 0) {
-            ESP_LOGE(TAG, "Failed to read PCM data");
-            break;
-        }
-        if (bytes_read == 0) break;
-
-        // 将新读取的数据存入缓存
-        pcm_buffer.insert(pcm_buffer.end(), buffer.get(), buffer.get() + bytes_read);
-
-        // 只要缓存够一帧，就处理一帧
-        while (pcm_buffer.size() >= FRAME_BYTES) {
-            std::vector<int16_t> pcm_frame(FRAME_SIZE);
-            memcpy(pcm_frame.data(), pcm_buffer.data(), FRAME_BYTES);
-            // 移除已处理的数据
-            pcm_buffer.erase(pcm_buffer.begin(), pcm_buffer.begin() + FRAME_BYTES);
-
-            // [Step 2] 注入编码队列上传至服务器 (由服务端识别并以 AI 音色回应)
-            audio_service.PushTaskToEncodeQueue(kAudioTaskTypeEncodeToSendQueue, std::move(pcm_frame), timestamp);
-            audio_service.UpdateAudioActivity();
-            
-            total_bytes += FRAME_BYTES;
-            timestamp += 60;
-            total_sent_ms += 60;
-
-            // [FIX] 计算时差，维持匀速回传，防止网络波动导致回传过快/过慢产生噪音
-            uint32_t current_time_ms = esp_timer_get_time() / 1000;
-            uint32_t elapsed_ms = current_time_ms - start_time_ms;
-            if (total_sent_ms > elapsed_ms) {
-                vTaskDelay(pdMS_TO_TICKS(total_sent_ms - elapsed_ms));
-            }
-        }
-    }
-    http->Close();
-    ESP_LOGI(TAG, "Reminder audio upload finished, total %u bytes", total_bytes);
-
-    // [FIX] 关键步骤：发送“停止监听”指令，告知服务端音频流结束，触发立即响应
-    if (protocol_) {
-        protocol_->SendStopListening();
-        ESP_LOGI(TAG, "Sent StopListening to server to trigger immediate response");
-    }
-
-    // [Step 3] 恢复麦克风采集，让 AI 能听到用户接下来的回复
-    if (was_processor_running) {
-        vTaskDelay(pdMS_TO_TICKS(500));
-        audio_service.EnableVoiceProcessing(true);
-    }
+    // 标记提醒已处理，等待服务器返回语音
+    // 服务器会处理 AI + TTS 并推送音频流到设备
+    ESP_LOGI(TAG, "Reminder sent to server for AI processing");
 
     // 清除标志：提醒 TTS 处理完成
     processing_reminder_tts_ = false;

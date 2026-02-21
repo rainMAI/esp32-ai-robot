@@ -71,6 +71,32 @@ bool WebsocketProtocol::SendText(const std::string& text) {
     return true;
 }
 
+bool WebsocketProtocol::SendReminderToServer(const std::string& content) {
+    if (websocket_ == nullptr || !websocket_->IsConnected()) {
+        ESP_LOGW(TAG, "WebSocket not connected, cannot send reminder");
+        return false;
+    }
+
+    // 发送提醒消息给服务器，让服务器处理 AI + TTS
+    cJSON* root = cJSON_CreateObject();
+    cJSON_AddStringToObject(root, "type", "reminder");
+    cJSON_AddStringToObject(root, "text", content.c_str());
+
+    char* json_str = cJSON_PrintUnformatted(root);
+    std::string message(json_str);
+    cJSON_free(json_str);
+    cJSON_Delete(root);
+
+    ESP_LOGI(TAG, "Sending reminder to server: %s", message.c_str());
+
+    if (!websocket_->Send(message)) {
+        ESP_LOGE(TAG, "Failed to send reminder to server");
+        return false;
+    }
+
+    return true;
+}
+
 bool WebsocketProtocol::IsAudioChannelOpened() const {
     return websocket_ != nullptr && websocket_->IsConnected() && !error_occurred_ && !IsTimeout();
 }
