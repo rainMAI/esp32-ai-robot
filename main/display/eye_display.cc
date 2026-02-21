@@ -206,7 +206,12 @@ void drawEye(uint8_t e, uint32_t iScale, uint32_t scleraX, uint32_t scleraY, uin
                 if ((lower[screenIdx] <= lT) || (upper[screenIdx] <= uT)) {
                     p = 0;  // 被眼睑遮挡
                 } else if ((irisY < 0) || (irisY >= IRIS_HEIGHT) || (irisX < 0) || (irisX >= IRIS_WIDTH)) {
-                    p = sclera[scleraY * SCLERA_WIDTH + scleraX];  // 在巩膜中
+                    // 边界检查，防止数组越界
+                    if (scleraX < SCLERA_WIDTH && scleraY < SCLERA_HEIGHT) {
+                        p = sclera[scleraY * SCLERA_WIDTH + scleraX];  // 在巩膜中
+                    } else {
+                        p = 0;  // 超出范围，使用黑色
+                    }
                 } else {
                     p = polar[irisY * IRIS_WIDTH + irisX];         // 极角/距离
                     d = (iScale * (p & 0x7F)) / 240;
@@ -214,7 +219,12 @@ void drawEye(uint8_t e, uint32_t iScale, uint32_t scleraX, uint32_t scleraY, uin
                         uint16_t a = (IRIS_MAP_WIDTH * (p >> 7)) / 512;
                         p = iris[d * IRIS_MAP_WIDTH + a];
                     } else {
-                        p = sclera[scleraY * SCLERA_WIDTH + scleraX];
+                        // 边界检查，防止数组越界
+                        if (scleraX < SCLERA_WIDTH && scleraY < SCLERA_HEIGHT) {
+                            p = sclera[scleraY * SCLERA_WIDTH + scleraX];
+                        } else {
+                            p = 0;  // 超出范围，使用黑色
+                        }
                     }
                 }
                 // 将像素数据写入当前缓冲区
@@ -368,6 +378,12 @@ if(is_blink){
     }
     if (eyeX > (SCLERA_WIDTH - DISPLAY_SIZE))
         eyeX = (SCLERA_WIDTH - DISPLAY_SIZE);
+    if (eyeX < 0)
+        eyeX = 0;
+    if (eyeY > (SCLERA_HEIGHT - DISPLAY_SIZE))
+        eyeY = (SCLERA_HEIGHT - DISPLAY_SIZE);
+    if (eyeY < 0)
+        eyeY = 0;
 
     // Eyelids are rendered using a brightness threshold image.  This same
     // map can be used to simplify another problem: making the upper eyelid

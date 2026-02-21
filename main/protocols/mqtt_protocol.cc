@@ -16,6 +16,7 @@ MqttProtocol::MqttProtocol() {
 
 MqttProtocol::~MqttProtocol() {
     ESP_LOGI(TAG, "MqttProtocol deinit");
+    mbedtls_aes_free(&aes_ctx_);
     vEventGroupDelete(event_group_handle_);
 }
 
@@ -296,10 +297,21 @@ void MqttProtocol::ParseServerHello(const cJSON* root) {
         ESP_LOGE(TAG, "UDP is not specified");
         return;
     }
-    udp_server_ = cJSON_GetObjectItem(udp, "server")->valuestring;
-    udp_port_ = cJSON_GetObjectItem(udp, "port")->valueint;
-    auto key = cJSON_GetObjectItem(udp, "key")->valuestring;
-    auto nonce = cJSON_GetObjectItem(udp, "nonce")->valuestring;
+    auto udp_server_item = cJSON_GetObjectItem(udp, "server");
+    auto udp_port_item = cJSON_GetObjectItem(udp, "port");
+    auto key_item = cJSON_GetObjectItem(udp, "key");
+    auto nonce_item = cJSON_GetObjectItem(udp, "nonce");
+    if (udp_server_item == nullptr || !cJSON_IsString(udp_server_item) ||
+        udp_port_item == nullptr || !cJSON_IsNumber(udp_port_item) ||
+        key_item == nullptr || !cJSON_IsString(key_item) ||
+        nonce_item == nullptr || !cJSON_IsString(nonce_item)) {
+        ESP_LOGE(TAG, "Invalid UDP config: missing required fields");
+        return;
+    }
+    udp_server_ = udp_server_item->valuestring;
+    udp_port_ = udp_port_item->valueint;
+    auto key = key_item->valuestring;
+    auto nonce = nonce_item->valuestring;
 
     // auto encryption = cJSON_GetObjectItem(udp, "encryption")->valuestring;
     // ESP_LOGI(TAG, "UDP server: %s, port: %d, encryption: %s", udp_server_.c_str(), udp_port_, encryption);

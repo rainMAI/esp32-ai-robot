@@ -20,6 +20,7 @@ public:
     bool OpenAudioChannel() override;
     void CloseAudioChannel() override;
     bool IsAudioChannelOpened() const override;
+    bool SendReminderToServer(const std::string& content);
 
 private:
     EventGroupHandle_t event_group_handle_;
@@ -28,7 +29,6 @@ private:
 
     void ParseServerHello(const cJSON* root);
     bool SendText(const std::string& text) override;
-    bool SendReminderToServer(const std::string& content);
     std::string GetHelloMessage();
 };
 

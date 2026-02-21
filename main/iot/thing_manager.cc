@@ -52,6 +52,10 @@ bool ThingManager::GetStatesJson(std::string& json, bool delta) {
 
 void ThingManager::Invoke(const cJSON* command) {
     auto name = cJSON_GetObjectItem(command, "name");
+    if (name == nullptr || !cJSON_IsString(name)) {
+        ESP_LOGE(TAG, "Invalid command: missing or invalid 'name' field");
+        return;
+    }
     for (auto& thing : things_) {
         if (thing->name() == name->valuestring) {
             thing->Invoke(command);

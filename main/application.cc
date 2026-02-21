@@ -978,7 +978,7 @@ void Application::ProcessReminderTts(const std::string& content) {
 
     std::string clean_content = content;
     
-    // [优化] 深度清洗：移除常见的 AI 回复冗余词汇和固定称呼（如“轩轩爸爸”）
+    // [优化] 深度清洗：移除常见的 AI 回复冗余词汇和固定称呼（如"轩轩爸爸"）
     const std::vector<std::string> redundant_prefixes = {
         "提醒轩轩爸爸", "提醒我", "提醒去", "提醒该", "告诉我该", "通知我", "提醒", 
         "提示我", "请提醒", "轩轩爸爸", "我"
@@ -1007,7 +1007,7 @@ void Application::ProcessReminderTts(const std::string& content) {
         }
     }
 
-    // 移除结尾的“提醒”字样
+    // 移除结尾的"提醒"字样
     if (clean_content.length() >= 6 && clean_content.substr(clean_content.length() - 6) == "提醒") {
         clean_content = clean_content.substr(0, clean_content.length() - 6);
     }
@@ -1023,19 +1023,20 @@ void Application::ProcessReminderTts(const std::string& content) {
     }
 
     std::string text;
-    // [修复：阻断递归] 明确这是一条”通知音频”，而非”用户口令”。加上括号和状态标识，引导服务器AI识别为状态而非命令。
-    //text = “提醒我一下：现在该去 “ + clean_content + “ 了，并且告诉我”+ clean_content + “ 的好处。”;
-    text = “现在该去” + clean_content + “了。”;
+    // [修复：阻断递归] 明确这是一条"通知音频"，而非"用户口令"。加上括号和状态标识，引导服务器AI识别为状态而非命令。
+    //text = "提醒我一下：现在该去 " + clean_content + " 了，并且告诉我"+ clean_content + " 的好处。";
+    text = "现在该去" + clean_content + "了。";
 
-    ESP_LOGI(TAG, “ProcessReminderTts: [清洗后内容: %s] [发送给服务器: %s]”, clean_content.c_str(), text.c_str());
+    ESP_LOGI(TAG, "ProcessReminderTts: [清洗后内容: %s] [发送给服务器: %s]", clean_content.c_str(), text.c_str());
 
     // [新流程] 发送提醒给服务器，让服务器处理 AI + TTS
     // 不再调用外部 TTS 服务 (120.25.213.109)
-    auto* ws_protocol = dynamic_cast<WebsocketProtocol*>(protocol_.get());
-    if (ws_protocol) {
+    // 注意：由于 ESP-IDF 禁用 RTTI，不能使用 dynamic_cast，改为直接调用
+    WebsocketProtocol* ws_protocol = static_cast<WebsocketProtocol*>(protocol_.get());
+    if (ws_protocol && ws_protocol->IsAudioChannelOpened()) {
         ws_protocol->SendReminderToServer(text);
     } else {
-        ESP_LOGE(TAG, “WebSocket protocol not available, cannot send reminder to server”);
+        ESP_LOGE(TAG, "WebSocket protocol not available, cannot send reminder to server");
     }
 
     // 标记提醒已处理，等待服务器返回语音

@@ -56,24 +56,34 @@ void Thing::Invoke(const cJSON* command) {
     auto method_name = cJSON_GetObjectItem(command, "method");
     auto input_params = cJSON_GetObjectItem(command, "parameters");
 
+    if (method_name == nullptr || !cJSON_IsString(method_name)) {
+        ESP_LOGE(TAG, "Invalid command: missing or invalid 'method' field");
+        return;
+    }
+    if (input_params == nullptr || !cJSON_IsObject(input_params)) {
+        ESP_LOGE(TAG, "Invalid command: missing or invalid 'parameters' field");
+        return;
+    }
+
     try {
-        auto& method = methods_[method_name->valuestring];
+        // MethodList uses operator[] which throws if method not found
+        Method& method = methods_[method_name->valuestring];
         for (auto& param : method.parameters()) {
             auto input_param = cJSON_GetObjectItem(input_params, param.name().c_str());
             if (param.required() && input_param == nullptr) {
                 throw std::runtime_error("Parameter " + param.name() + " is required");
             }
             if (param.type() == kValueTypeNumber) {
-                if (cJSON_IsNumber(input_param)) {
+                if (input_param != nullptr && cJSON_IsNumber(input_param)) {
                     param.set_number(input_param->valueint);
                 }
             } else if (param.type() == kValueTypeString) {
-                if (cJSON_IsString(input_param) || cJSON_IsObject(input_param) || cJSON_IsArray(input_param)) {
+                if (input_param != nullptr && (cJSON_IsString(input_param) || cJSON_IsObject(input_param) || cJSON_IsArray(input_param))) {
                     std::string value_str = input_param->valuestring;
                     param.set_string(value_str);
                 }
             } else if (param.type() == kValueTypeBoolean) {
-                if (cJSON_IsBool(input_param)) {
+                if (input_param != nullptr && cJSON_IsBool(input_param)) {
                     param.set_boolean(input_param->valueint == 1);
                 }
             }
